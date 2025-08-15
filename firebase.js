@@ -3,16 +3,17 @@
 // 2) Поставь ENABLED=true.
 // 3) Закоммить — появятся кнопки Войти/Выйти и облачная синхронизация.
 
-export let ENABLED = false; // ← сменить на true после вставки ключей
+export let ENABLED = true;
 
 export const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyDQ81nx5JTUPI9x1TEasyhWQC31ge_6cDA",
+  authDomain: "cards-calendar.firebaseapp.com",
+  projectId: "cards-calendar",
+  storageBucket: "cards-calendar.firebasestorage.app",
+  messagingSenderId: "472761089728",
+  appId: "1:472761089728:web:ede789e8a212bd0001b725"
 };
+
 
 // Если оставишь "...", облако автоматически будет выключено
 for (const k of Object.keys(firebaseConfig)) {
