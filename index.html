@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CardsCalendar</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <style>
+    :root { --gap: 12px; --radius: 12px; --shadow: 0 6px 20px rgba(0,0,0,.08); }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#fafafa; color:#111; }
+    header { position:sticky; top:0; background:#fff; padding:10px 12px; box-shadow: 0 1px 0 rgba(0,0,0,.08); z-index:10; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    h1 { margin:0; font-size: 18px; }
+    main { padding: 16px; max-width: 860px; margin: 0 auto; }
+    .row { display:flex; gap:var(--gap); flex-wrap:wrap; }
+    .card { background:#fff; border-radius: var(--radius); box-shadow: var(--shadow); padding:16px; }
+    .section { width:100%; }
+    .section h2 { font-size:16px; margin:0 0 8px; opacity:.8; }
+    .deck-list { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--gap); }
+    .deck { padding:14px; border:1px solid #eee; border-radius: var(--radius); background:#fff; cursor:pointer; transition: box-shadow .2s, border-color .2s; }
+    .deck small { display:block; opacity:.6; margin-top:6px; }
+    .deck.highlight { border-color:#111; box-shadow: 0 0 0 2px #1112; }
+    .controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin: 12px 0; }
+    button, .btn { padding:9px 11px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+    button.primary { background:#111; color:#fff; border-color:#111; }
+    input[type="file"] { display:none; }
+    label.file { display:inline-block; padding:10px 12px; border:1px dashed #bbb; border-radius:10px; cursor:pointer; }
+    .hidden { display:none !important; }
+    .muted { opacity:.7; }
+    .rightbox { display:flex; gap:6px; align-items:center; }
+    /* Viewer */
+    .viewer { display:flex; flex-direction:column; gap:12px; }
+    .viewer-top { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    .viewer-top .meta { font-size:14px; opacity:.8; }
+    .flipcard { user-select:none; background:#fff; border:1px solid #eee; border-radius:16px; padding:28px 20px; min-height:220px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:20px; line-height:1.4; }
+    .flipcard:active { transform: scale(.997); }
+    .repeat-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .repeat-grid button { padding:12px 8px; }
+    .toolbar { display:flex; gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+    .toolbar .left, .toolbar .right { display:flex; gap:8px; align-items:center; }
+    .history { font-size:13px; background:#f6f6f6; border-radius:12px; padding:8px 10px; }
+    .pill { padding:3px 8px; border-radius:999px; background:#efefef; font-size:12px; }
+    .toast { position: fixed; left:50%; transform: translateX(-50%); bottom: 16px; background:#111; color:#fff; padding:10px 14px; border-radius:999px; font-size:14px; opacity:0; transition: opacity .2s, bottom .2s; z-index:1000; }
+    .toast.show { opacity:1; bottom: 24px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>CardsCalendar</h1>
+  <div class="rightbox">
+    <span id="userLabel" class="muted hidden"></span>
+    <button id="signInBtn" class="hidden">Войти</button>
+    <button id="signOutBtn" class="hidden">Выйти</button>
+    <button id="installBtn" class="hidden">Установить</button>
+  </div>
+</header>
+<main>
+  <section id="home" class="section">
+    <div class="controls">
+      <label class="file">
+        Импорт .txt (рус;нидерл)
+        <input id="fileInput" type="file" accept=".txt">
+      </label>
+      <input id="deckName" placeholder="Название новой колоды" style="padding:10px;border:1px solid #ddd;border-radius:10px;">
+      <button id="createDeckBtn" class="primary">Создать пустую колоду</button>
+    </div>
+    <div class="row">
+      <div class="section card" style="flex:1;">
+        <h2>📂 Обычные колоды</h2>
+        <div id="regularDecks" class="deck-list"></div>
+      </div>
+      <div class="section card" style="flex:1;">
+        <div class="toolbar">
+          <h2>📅 Датированные колоды</h2>
+          <div class="right muted"><span id="rangeInfo"></span></div>
+        </div>
+        <div id="datedDecks" class="deck-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="viewer" class="section hidden">
+    <div class="toolbar">
+      <div class="left">
+        <button id="backBtn">← Назад</button>
+        <span id="deckTitle" class="muted"></span>
+      </div>
+      <div class="right">
+        <button id="toggleOrderBtn">Язык: <span id="orderLabel">Рус → Нид</span></button>
+        <button id="shuffleBtn">Перемешать</button>
+      </div>
+    </div>
+
+    <div class="viewer">
+      <div class="viewer-top">
+        <div class="meta">Повторов: <span id="repeatCount">0</span></div>
+        <div class="meta history" id="intervalHistory">—</div>
+      </div>
+
+      <div id="flipCard" class="flipcard">—</div>
+
+      <div class="repeat-grid">
+        <button data-int="0">Сегодня</button>
+        <button data-int="1">1 день</button>
+        <button data-int="3">3 дня</button>
+        <button data-int="10">10 дней</button>
+        <button data-int="30">1 мес</button>
+        <button data-int="90">3 мес</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script type="module" src="app.js?v=3"></script>
+<script>
+  // PWA install prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('installBtn');
+    btn.classList.remove('hidden');
+    btn.onclick = async () => {
+      btn.classList.add('hidden');
+      deferredPrompt.prompt();
+      deferredPrompt = null;
+    };
+  });
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js?v=3');
+  }
+</script>
+</body>
+</html>
